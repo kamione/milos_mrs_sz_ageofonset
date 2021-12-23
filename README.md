@@ -2,6 +2,7 @@
 
 # Folder Structure
 
+```bash
 ├── 2021_HKU_MRS.Rproj
 ├── README.md
 ├── data
@@ -27,5 +28,6 @@
 │   ├── 01_descriptive.R
 │   ├── 02_inferences.R
 └── src
-└── R
-└── stat.R
+    └── R
+        └── stat.R
+```
