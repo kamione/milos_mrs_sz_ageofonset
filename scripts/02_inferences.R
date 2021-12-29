@@ -7,6 +7,7 @@ library(glue)
 library(rstatix)
 library(gtsummary)
 library(ggthemes)
+library(gt)
 
 source(here("src", "R", "stat.R"))
 
@@ -279,7 +280,7 @@ lm_res1 <- data_fep %>%
 broom::tidy(lm_res1) %>% mutate_if(is.numeric, round, 10)
 broom::glance(lm_res1)
 report::report(lm_res1)
-table_lm_1 <- lm_res1 %>% 
+table_lm_1_org <- lm_res1 %>% 
     tbl_regression(
         label = list(
             naa ~ "NAA",
@@ -289,8 +290,28 @@ table_lm_1 <- lm_res1 %>%
             group2 ~ "Onset Group"
         )
     ) %>% 
-    bold_p() %>% 
+    bold_p()
+table_lm_1_std <- lm_res1 %>% 
+    tbl_regression(
+        tidy_fun = tidy_standardize,
+        label = list(
+            naa ~ "NAA",
+            Gender ~ "Sex",
+            Years_of_education ~ "Years of Education",
+            DUP_months ~ "DUP (months)",
+            group2 ~ "Onset Group"
+        )
+    ) %>% 
     add_glance_table(include = c(r.squared, adj.r.squared))
+
+table_lm_1 <- tbl_merge(list(table_lm_1_std, table_lm_1_org)) %>% 
+    modify_header(estimate_1 ~ glue("**{rlang::expr('\U03B2')}**")) %>% 
+    modify_column_hide(columns = c(estimate_2, ci_2)) %>% 
+    modify_spanning_header(
+        c(estimate_1, ci_1, p.value_2) ~ 
+            "**Visual Pattern (Correct) ~ BG**")
+
+
 
 lm_res2 <- data_fep %>%
     rename("naa" = "bg_naa") %>% 
@@ -298,7 +319,7 @@ lm_res2 <- data_fep %>%
 broom::tidy(lm_res2) %>% mutate_if(is.numeric, round, 10)
 broom::glance(lm_res2)
 report::report(lm_res2)
-table_lm_2 <- lm_res2 %>% 
+table_lm_2_org <- lm_res2 %>% 
     tbl_regression(
         label = list(
             naa ~ "NAA",
@@ -308,8 +329,29 @@ table_lm_2 <- lm_res2 %>%
             group2 ~ "Onset Group"
         )
     ) %>% 
-    bold_p() %>% 
+    bold_p()
+
+table_lm_2_std <- lm_res2 %>% 
+    tbl_regression(
+        tidy_fun = tidy_standardize,
+        label = list(
+            naa ~ "NAA",
+            Gender ~ "Sex",
+            Years_of_education ~ "Years of Education",
+            DUP_months ~ "DUP (months)",
+            group2 ~ "Onset Group"
+        )
+    ) %>% 
     add_glance_table(include = c(r.squared, adj.r.squared))
+
+table_lm_2 <- tbl_merge(list(table_lm_2_std, table_lm_2_org)) %>% 
+    modify_header(estimate_1 ~ glue("**{rlang::expr('\U03B2')}**")) %>% 
+    modify_column_hide(columns = c(estimate_2, ci_2)) %>% 
+    modify_spanning_header(
+        c(estimate_1, ci_1, p.value_2) ~ 
+            "**WCST (Non-Perseverative Error) ~ BG**")
+
+
 
 lm_res3 <- data_fep %>%
     rename("naa" = "acc_naa") %>% 
@@ -317,7 +359,7 @@ lm_res3 <- data_fep %>%
 broom::tidy(lm_res3) %>% mutate_if(is.numeric, round, 10)
 broom::glance(lm_res3)
 report::report(lm_res3)
-table_lm_3 <- lm_res3 %>% 
+table_lm_3_org <- lm_res3 %>% 
     tbl_regression(
         label = list(
             naa ~ "NAA",
@@ -327,14 +369,36 @@ table_lm_3 <- lm_res3 %>%
             group2 ~ "Onset Group"
         )
     ) %>% 
-    bold_p() %>% 
+    bold_p()
+
+table_lm_3_std <- lm_res3 %>% 
+    tbl_regression(
+        tidy_fun = tidy_standardize,
+        label = list(
+            naa ~ "NAA",
+            Gender ~ "Sex",
+            Years_of_education ~ "Years of Education",
+            DUP_months ~ "DUP (months)",
+            group2 ~ "Onset Group"
+        )
+    ) %>% 
     add_glance_table(include = c(r.squared, adj.r.squared))
+
+
+table_lm_3 <- tbl_merge(list(table_lm_3_std, table_lm_3_org)) %>% 
+    modify_header(estimate_1 ~ glue("**{rlang::expr('\U03B2')}**")) %>% 
+    modify_column_hide(columns = c(estimate_2, ci_2)) %>% 
+    modify_spanning_header(
+        c(estimate_1, ci_1, p.value_2) ~ 
+            "**WCST (Non-Perseverative Error) ~ ACC**")
+
+
 
 merged_table <- tbl_merge(
     list(table_lm_1, table_lm_2, table_lm_3),
-    tab_spanner = c("**A. BG ~ Visual Pattern (Correct)**", 
-                    "**B. BG ~ WCST (Non-Perseverative Error)**",
-                    "**C. ACC ~ WCST (Non-Perseverative Error)**")
+    tab_spanner = c("**A. Visual Pattern (Correct) ~ BG**", 
+                    "**B. WCST (Non-Perseverative Error) ~ BG**",
+                    "**C. WCST (Non-Perseverative Error) ~ ACC**")
     )
 
 merged_table %>% 
@@ -345,7 +409,13 @@ merged_table %>%
                     LOS = Late-onset schizophrenia",
         locations = cells_column_labels(columns = label)
     ) %>% 
+    tab_footnote( # and can modify/add footnotes this way
+        footnote = "Standardized Betas",
+        locations = cells_column_labels(columns = c(estimate_1_1, estimate_1_2, estimate_1_3))
+    ) %>% 
     gtsave(filename = here("outputs", "tables", "regression_models_comparison.html"))
+
+
 
 # only model 1 shows an interaction effect
 # plot interaction effect 
