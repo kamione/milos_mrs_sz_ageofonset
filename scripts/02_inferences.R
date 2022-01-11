@@ -106,11 +106,11 @@ corr_res <- data %>%
         "Logical Memory (Immediate)" = "LM_immediate",
         "Logical Memory (Delayed)" = "LM_delayed",
         "Digit Symbol" = "Digit_symbol",
-        "WCST (Correct)" = "WC_correct",
-        "WCST (Error)" = "WC_error",
-        "WCST (Non-Perseverative Error)" = "WC_NP_error",
-        "WCST (Perseverative Error)" = "WC_P_error",
-        "WCST (Categories)" = "WC_categories",
+        "MWCST (Correct)" = "WC_correct",
+        "MWCST (Error)" = "WC_error",
+        "MWCST (Non-Perseverative Error)" = "WC_NP_error",
+        "MWCST (Perseverative Error)" = "WC_P_error",
+        "MWCST (Categories)" = "WC_categories",
         "Verbal Fluency (Count)" = "VF_count",
         "Verbal Fluency (Duplicate)" = "VF_duplicate_count",
         "Verbal Fluency (Error)" = "VF_error_count"
@@ -155,7 +155,7 @@ scatter_1 <- data %>%
 scatter_2 <- data %>% 
     ggscatter(x = "bg_naa", y = "WC_NP_error", color = "group2", shape = "group2", size = 3) +
     scale_color_manual(values = c("#268785", "#72636E", "tomato3", "grey30")) +
-    labs(x = "BG NAA Concentration Ratio", y = "WCST Non-Perseverative Errors", color = "", shape = "") +
+    labs(x = "BG NAA Concentration Ratio", y = "MWCST Non-Perseverative Errors", color = "", shape = "") +
     #scale_x_continuous(breaks = seq(0.5, 1.8, 0.25), limit = c(0.5, 1.8)) +
     scale_y_continuous(breaks = seq(0, 25, 5), limit = c(-5, 25)) +
     ggthemes::theme_pander() +
@@ -172,7 +172,7 @@ scatter_2 <- data %>%
 scatter_3 <- data %>% 
     ggscatter(x = "acc_naa", y = "WC_NP_error", color = "group2", shape = "group2", size = 3) +
     scale_color_manual(values = c("#268785", "#72636E", "tomato3", "grey30")) +
-    labs(x = "ACC NAA Concentration Ratio", y = "WCST Non-Perseverative Errors", color = "", shape = "") +
+    labs(x = "ACC NAA Concentration Ratio", y = "MWCST Non-Perseverative Errors", color = "", shape = "") +
     scale_x_continuous(breaks = seq(0.75, 1.8, 0.25)) +
     scale_y_continuous(breaks = seq(0, 25, 5), limit = c(-5, 25)) +
     ggthemes::theme_pander() +
@@ -200,7 +200,7 @@ comparison_violin <- data %>%
     mutate(group2 = droplevels(group2)) %>% 
     rename(
         "Viusal Pattern (Correct)" = "Visual_Pattern_correct",
-        "WCST (Non-Perseverative Error)" = "WC_NP_error"
+        "MWCST (Non-Perseverative Error)" = "WC_NP_error"
     ) %>% 
     pivot_longer(!group2, names_to = "measures", values_to = "value") %>%
     ggviolin(x = "group2",
@@ -243,12 +243,12 @@ table_cog_fep <- data %>%
         "Logical Memory (Immediate)" = "LM_immediate",
         "Logical Memory (Delayed)" = "LM_delayed",
         "Digit Symbol" = "Digit_symbol",
-        "WCST (Correct)" = "WC_correct",
-        "WCST (Error)" = "WC_error",
-        "WCST (Non-Perseverative Error)" = "WC_NP_error",
-        "WCST (Perseverative Error)" = "WC_P_error",
-        "WCST (Categories)" = "WC_categories",
-        "Verbal Fluency (Count)" = "VF_count",
+        "MWCST (Correct)" = "WC_correct",
+        "MWCST (Error)" = "WC_error",
+        "MWCST (Non-Perseverative Error)" = "WC_NP_error",
+        "MWCST (Perseverative Error)" = "WC_P_error",
+        "MWCST (Categories)" = "WC_categories",
+        "Verbal Fluency (Correct)" = "VF_count",
         "Verbal Fluency (Duplicate)" = "VF_duplicate_count",
         "Verbal Fluency (Error)" = "VF_error_count"
     ) %>% 
@@ -274,9 +274,13 @@ data_fep <- data %>%
     filter(group == "FEP") %>% 
     mutate(group2 = droplevels(group2))
 
-lm_res1 <- data_fep %>% 
+lm_res1 <- data_fep %>%
+    filter(!is.na(CPZ_before_scan)) %>% 
     rename("naa" = "bg_naa") %>% 
     lm(Visual_Pattern_correct ~ Age + Gender + Years_of_education + DUP_months + naa * group2, data = .)
+lm_res1_cpz <- data_fep %>% 
+    rename("naa" = "bg_naa") %>% 
+    lm(Visual_Pattern_correct ~ Age + Gender + Years_of_education + DUP_months + CPZ_before_scan + naa * group2, data = .)
 broom::tidy(lm_res1) %>% mutate_if(is.numeric, round, 10)
 broom::glance(lm_res1)
 report::report(lm_res1)
@@ -349,7 +353,7 @@ table_lm_2 <- tbl_merge(list(table_lm_2_std, table_lm_2_org)) %>%
     modify_column_hide(columns = c(estimate_2, ci_2)) %>% 
     modify_spanning_header(
         c(estimate_1, ci_1, p.value_2) ~ 
-            "**WCST (Non-Perseverative Error) ~ BG**")
+            "**MWCST (Non-Perseverative Error) ~ BG**")
 
 
 
@@ -390,15 +394,15 @@ table_lm_3 <- tbl_merge(list(table_lm_3_std, table_lm_3_org)) %>%
     modify_column_hide(columns = c(estimate_2, ci_2)) %>% 
     modify_spanning_header(
         c(estimate_1, ci_1, p.value_2) ~ 
-            "**WCST (Non-Perseverative Error) ~ ACC**")
+            "**MWCST (Non-Perseverative Error) ~ ACC**")
 
 
 
 merged_table <- tbl_merge(
     list(table_lm_1, table_lm_2, table_lm_3),
     tab_spanner = c("**A. Visual Pattern (Correct) ~ BG**", 
-                    "**B. WCST (Non-Perseverative Error) ~ BG**",
-                    "**C. WCST (Non-Perseverative Error) ~ ACC**")
+                    "**B. MWCST (Non-Perseverative Error) ~ BG**",
+                    "**C. MWCST (Non-Perseverative Error) ~ ACC**")
     )
 
 merged_table %>% 
