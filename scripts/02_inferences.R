@@ -15,11 +15,7 @@ filter <- dplyr::filter # resolve the conflict
 
 
 # Data I/O ---------------------------------------------------------------------
-data <- here("data", "raw", "MILOS_20210621.csv") %>% 
-    read_csv(col_types = cols()) %>% 
-    mutate(group = factor(group, levels = c("FEP", "HC"))) %>% 
-    mutate(group2 = factor(group2, levels = c("EOS", "EOS-C", "LOS", "LOS-C")))
-
+data <- read_rds(here("data", "processed", "data4analysis.rds"))
 
 # 1. Metabolite Group Difference -----------------------------------------------
 imaging_list1 <- c("BG Glx" = "bg_glugln",
@@ -65,8 +61,8 @@ figs_4groups <- lapply(seq_along(imaging_list1), function(x) {
     stat.test <- data %>% 
         t_test(
             formula(glue("{imaging_list1[x]} ~ group2")),
-            comparisons = list(c("EOS", "EOS-C"), c("LOS", "LOS-C"), c("EOS", "LOS"), c("EOS-C", "LOS-C")),
-            p.adjust.method = "none"
+            comparisons = list(c("EOS", "EOS-C"), c("LOS", "LOS-C"), c("EOS", "LOS")),
+            p.adjust.method = "fdr"
         ) %>%
         add_xy_position(step.increase = step_increase)
     
@@ -147,7 +143,7 @@ scatter_1 <- data %>%
     annotate(geom = "text",
              x = 0.5,
              y = 24,
-             label = "italic(r)==0.43*','~italic(p)==0.022",
+             label = glue("italic(r)=={format_decimals(corr_res$r['BG NAA', 'Viusal Pattern (Correct)'])}*','~italic(p)=={format_decimals(corr_res$p['BG NAA', 'Viusal Pattern (Correct)'])}"),
              color = "gray20",
              hjust = 0,
              parse = TRUE)
@@ -164,7 +160,7 @@ scatter_2 <- data %>%
     annotate(geom = "text",
              x = 1.15,
              y = 24,
-             label = "italic(r)==-0.42*','~italic(p)==0.029",
+             label = glue("italic(r)=={format_decimals(corr_res$r['BG NAA', 'MWCST (Non-Perseverative Error)'])}*','~italic(p)=={format_decimals(corr_res$p['BG NAA', 'MWCST (Non-Perseverative Error)'])}"),
              color = "gray20",
              hjust = 0,
              parse = TRUE)
@@ -181,7 +177,7 @@ scatter_3 <- data %>%
     annotate(geom = "text",
              x = 1.42,
              y = 24,
-             label = "italic(r)==-0.48*','~italic(p)==0.002",
+             label = glue("italic(r)=={format_decimals(corr_res$r['ACC NAA', 'MWCST (Non-Perseverative Error)'])}*','~italic(p)=={format_decimals(corr_res$p['ACC NAA', 'MWCST (Non-Perseverative Error)'])}"),
              color = "gray20",
              hjust = 0,
              parse = TRUE)
@@ -269,6 +265,45 @@ table_cog_fep %>%
     gtsave(filename = here("outputs", "tables", "table_cog_fep.html"))
 
 
+table_cog_all <- data %>% 
+    select(group2, DS_F:Monotone) %>% 
+    mutate(group2 = droplevels(group2)) %>% 
+    rename(
+        "Digit Span (Forward)" = "DS_F",
+        "Digit Span (Backward)" = "DS_B",
+        "Viusal Pattern (Correct)" = "Visual_Pattern_correct",
+        "Viusal Pattern (Longest)" = "Visual_Pattern_Longest_Passed",
+        "Logical Memory (Immediate)" = "LM_immediate",
+        "Logical Memory (Delayed)" = "LM_delayed",
+        "Digit Symbol" = "Digit_symbol",
+        "MWCST (Correct)" = "WC_correct",
+        "MWCST (Error)" = "WC_error",
+        "MWCST (Non-Perseverative Error)" = "WC_NP_error",
+        "MWCST (Perseverative Error)" = "WC_P_error",
+        "MWCST (Categories)" = "WC_categories",
+        "Verbal Fluency (Correct)" = "VF_count",
+        "Verbal Fluency (Duplicate)" = "VF_duplicate_count",
+        "Verbal Fluency (Error)" = "VF_error_count"
+    ) %>% 
+    tbl_summary(
+        by = group2,
+        missing = "no",
+        type = where(is.numeric) ~ "continuous",
+        statistic = list(everything() ~ "{mean} ({sd})")
+    ) %>% 
+    add_p(test = list(everything() ~ "aov")) %>% 
+    add_q(method = "fdr") %>% 
+    bold_p(q = TRUE) %>%
+    add_stat(everything() ~ add_stat_pairwise) %>% 
+    modify_column_hide(c("**EOS-C vs. LOS**", "**EOS vs. LOS-C**"))
+    
+table_cog_all %>% 
+    as_gt() %>% 
+    gtsave(filename = here("outputs", "tables", "table_cog_all.html"))
+
+
+
+
 # 4. Regression Models ---------------------------------------------------------                                                                                                                                                                                                                                     
 data_fep <- data %>% 
     filter(group == "FEP") %>% 
@@ -277,7 +312,7 @@ data_fep <- data %>%
 lm_res1 <- data_fep %>%
     filter(!is.na(CPZ_before_scan)) %>% 
     rename("naa" = "bg_naa") %>% 
-    lm(Visual_Pattern_correct ~ Age + Gender + Years_of_education + DUP_months + naa * group2, data = .)
+    lm(Visual_Pattern_correct ~ Age + Gender + Years_of_education + DUP_months + aoo + naa * group2, data = .)
 lm_res1_cpz <- data_fep %>% 
     rename("naa" = "bg_naa") %>% 
     lm(Visual_Pattern_correct ~ Age + Gender + Years_of_education + DUP_months + CPZ_before_scan + naa * group2, data = .)
@@ -287,6 +322,7 @@ report::report(lm_res1)
 table_lm_1_org <- lm_res1 %>% 
     tbl_regression(
         label = list(
+            aoo ~ "Age of Onset",
             naa ~ "NAA",
             Gender ~ "Sex",
             Years_of_education ~ "Years of Education",
@@ -299,6 +335,7 @@ table_lm_1_std <- lm_res1 %>%
     tbl_regression(
         tidy_fun = tidy_standardize,
         label = list(
+            aoo ~ "Age of Onset",
             naa ~ "NAA",
             Gender ~ "Sex",
             Years_of_education ~ "Years of Education",
@@ -319,13 +356,14 @@ table_lm_1 <- tbl_merge(list(table_lm_1_std, table_lm_1_org)) %>%
 
 lm_res2 <- data_fep %>%
     rename("naa" = "bg_naa") %>% 
-    lm(WC_NP_error ~ Age + Gender + Years_of_education + DUP_months + naa * group2, data = .)
+    lm(WC_NP_error ~ Age + Gender + Years_of_education + DUP_months + aoo + naa * group2, data = .)
 broom::tidy(lm_res2) %>% mutate_if(is.numeric, round, 10)
 broom::glance(lm_res2)
 report::report(lm_res2)
 table_lm_2_org <- lm_res2 %>% 
     tbl_regression(
         label = list(
+            aoo ~ "Age of Onset",
             naa ~ "NAA",
             Gender ~ "Sex",
             Years_of_education ~ "Years of Education",
@@ -339,6 +377,7 @@ table_lm_2_std <- lm_res2 %>%
     tbl_regression(
         tidy_fun = tidy_standardize,
         label = list(
+            aoo ~ "Age of Onset",
             naa ~ "NAA",
             Gender ~ "Sex",
             Years_of_education ~ "Years of Education",
@@ -359,13 +398,14 @@ table_lm_2 <- tbl_merge(list(table_lm_2_std, table_lm_2_org)) %>%
 
 lm_res3 <- data_fep %>%
     rename("naa" = "acc_naa") %>% 
-    lm(WC_NP_error ~ Age + Gender + Years_of_education + DUP_months + naa * group2, data = .)
+    lm(WC_NP_error ~ Age + Gender + Years_of_education + DUP_months + aoo + naa * group2, data = .)
 broom::tidy(lm_res3) %>% mutate_if(is.numeric, round, 10)
 broom::glance(lm_res3)
 report::report(lm_res3)
 table_lm_3_org <- lm_res3 %>% 
     tbl_regression(
         label = list(
+            aoo ~ "Age of Onset",
             naa ~ "NAA",
             Gender ~ "Sex",
             Years_of_education ~ "Years of Education",
@@ -379,6 +419,7 @@ table_lm_3_std <- lm_res3 %>%
     tbl_regression(
         tidy_fun = tidy_standardize,
         label = list(
+            aoo ~ "Age of Onset",
             naa ~ "NAA",
             Gender ~ "Sex",
             Years_of_education ~ "Years of Education",

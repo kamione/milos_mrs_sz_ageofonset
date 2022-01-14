@@ -6,16 +6,32 @@ library(gt)
 library(gtsummary)
 library(psych)
 library(ggpubr)
+library(lubridate)
 
 # Data I/O ---------------------------------------------------------------------
+aoo_data <- here("data", "raw", "2022 01 14 MILOS IRAOS.xlsx") %>% 
+    readxl::read_xlsx(skip = 1) %>% 
+    select(`Case ID`, DOB, `First symptom_date`) %>% 
+    mutate(DOB = as.numeric(DOB)) %>% 
+    mutate(DOB = lubridate::as_date(DOB, origin = "1900-01-01")) %>% 
+    mutate(first_symptom_date = lubridate::as_date(`First symptom_date`, origin = "1900-01-01")) %>% 
+    select(-`First symptom_date`) %>% 
+    mutate(aoo = (first_symptom_date - DOB) / ddays(365.25)) %>% 
+    rename("subjectcode" = "Case ID")
+    
 data <- here("data", "raw", "MILOS_20210621.csv") %>% 
-    read_csv(col_types = cols())
+    read_csv(col_types = cols()) %>% 
+    left_join(aoo_data, by = "subjectcode") %>% 
+    mutate(group = factor(group, levels = c("FEP", "HC"))) %>% 
+    mutate(group2 = factor(group2, levels = c("EOS", "EOS-C", "LOS", "LOS-C"))) %>% 
+    filter(!(aoo < 40 & group2 == "LOS"))
 
+write_rds(data, here("data", "processed", "data4analysis.rds"))
 
 # Demographics -----------------------------------------------------------------
 basic_demog_table1 <- data %>% 
     select(group2, Gender, Age, Years_of_education, Occupation_recode, dx_sz,
-           DUP_months, PANSS_P_Total:PANSS_G_Total, CDSS_TOTAL, MRS_TOTAL,
+           DUP_months, aoo, PANSS_P_Total:PANSS_G_Total, CDSS_TOTAL, MRS_TOTAL,
            SOFAS, CPZ_before_scan) %>%
     filter(group2 %in% c("EOS", "LOS")) %>% 
     mutate(group2 = factor(group2)) %>%
@@ -42,6 +58,7 @@ basic_demog_table1 <- data %>%
                      Occupation_recode ~ "Employement",
                      dx_sz ~ "SZ Diagnosis",
                      DUP_months ~ "DUP in months, median (IQR)",
+                     aoo ~ "Age of Onset",
                      PANSS_P_Total ~ "PANSS Positive",
                      PANSS_N_Total ~ "PANSS Negative",
                      PANSS_G_Total ~ "PANSS General",
@@ -176,7 +193,7 @@ site_compare_table <- data %>%
     mutate(site = if_else(is.na(AP), "HKU", "HKSH")) %>% 
     filter(group == "FEP") %>% 
     select(site, Gender, Age, Years_of_education, Occupation_recode, dx_sz,
-           DUP_months, PANSS_P_Total:PANSS_G_Total, CDSS_TOTAL, MRS_TOTAL,
+           DUP_months, aoo, PANSS_P_Total:PANSS_G_Total, CDSS_TOTAL, MRS_TOTAL,
            SOFAS, CPZ_before_scan) %>%
     tbl_summary(
         by = site,
@@ -196,6 +213,7 @@ site_compare_table <- data %>%
                      Occupation_recode ~ "Employement",
                      dx_sz ~ "SZ Diagnosis",
                      DUP_months ~ "DUP in months, median (IQR)",
+                     aoo ~ "Age of Onset",
                      PANSS_P_Total ~ "PANSS Positive",
                      PANSS_N_Total ~ "PANSS Negative",
                      PANSS_G_Total ~ "PANSS General",
@@ -207,7 +225,8 @@ site_compare_table <- data %>%
     add_overall() %>% 
     modify_footnote(update = everything() ~ NA) %>% 
     add_p(test = list(all_continuous() ~ "wilcox.test",
-                      all_categorical() ~ "chisq.test"))
+                      all_categorical() ~ "chisq.test")) %>% 
+    bold_p()
 
 site_compare_table %>% 
     as_gt() %>%
