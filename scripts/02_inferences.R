@@ -158,7 +158,7 @@ scatter_2 <- data %>%
     theme(plot.margin = margin(2, 2, 2, 2, "mm")) +
     geom_smooth(method = "lm", color = "grey20", fill = "grey75") +
     annotate(geom = "text",
-             x = 1.15,
+             x = 1,
              y = 24,
              label = glue("italic(r)=={format_decimals(corr_res$r['BG NAA', 'MWCST (Non-Perseverative Error)'])}*','~italic(p)=={format_decimals(corr_res$p['BG NAA', 'MWCST (Non-Perseverative Error)'])}"),
              color = "gray20",
@@ -175,7 +175,7 @@ scatter_3 <- data %>%
     theme(plot.margin = margin(2, 2, 2, 2, "mm")) +
     geom_smooth(method = "lm", color = "grey20", fill = "grey75") +
     annotate(geom = "text",
-             x = 1.42,
+             x = 1.32,
              y = 24,
              label = glue("italic(r)=={format_decimals(corr_res$r['ACC NAA', 'MWCST (Non-Perseverative Error)'])}*','~italic(p)=={format_decimals(corr_res$p['ACC NAA', 'MWCST (Non-Perseverative Error)'])}"),
              color = "gray20",
