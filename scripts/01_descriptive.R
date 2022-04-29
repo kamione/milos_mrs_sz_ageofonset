@@ -7,6 +7,16 @@ library(gtsummary)
 library(psych)
 library(ggpubr)
 library(lubridate)
+library(flextable)
+library(officer)
+
+sect_properties <- prop_section(
+    page_size = page_size(orient = "landscape",
+                          width = 8.3, height = 11.7),
+    type = "continuous",
+    page_margins = page_mar()
+)
+
 
 # Data I/O ---------------------------------------------------------------------
 aoo_data <- here("data", "raw", "2022 01 14 MILOS IRAOS.xlsx") %>% 
@@ -27,6 +37,7 @@ data <- here("data", "raw", "MILOS_20210621.csv") %>%
     filter(!(aoo < 40 & group2 == "LOS"))
 
 write_rds(data, here("data", "processed", "data4analysis.rds"))
+# data <- read_rds(here("data", "processed", "data4analysis.rds"))
 
 # Demographics -----------------------------------------------------------------
 basic_demog_table1 <- data %>% 
@@ -159,7 +170,8 @@ basic_demog_table <- tbl_merge(
     tab_spanner = c("**First Episode Schizophrenia**", 
                     "**Heathy Controls**",
                     "**EOS vs. EOS-C**",
-                    "**LOS vs. LOS-C**"))
+                    "**LOS vs. LOS-C**")) %>% 
+    modify_footnote(c("q.value_1", "q.value_2", "q.value_3", "q.value_4") ~ NA)
 
 basic_demog_table %>% 
     as_gt() %>%
@@ -187,6 +199,50 @@ basic_demog_table %>%
         locations = cells_body(columns = c(stat_0_1, stat_0_2))
     ) %>% 
     gtsave(filename = here("outputs", "tables", "basic_demog_table.html"))
+
+basic_demog_table %>% 
+    as_flex_table() %>% 
+    bold(part = "header") %>% 
+    footnote(
+        i = 2, j = 1,
+        value = as_paragraph(paste(
+            "SZ = Schizophrenia;",
+            "DUP = Duration of untreated psychosis;",
+            "IQR = Interquartile range;",
+            "PANSS = Positive and Negative Syndrome Scale;",
+            "CDSS = Calgary Depression Scale for Schizophrenia;",
+            "MRS = Young Mania Rating Scale;", 
+            "SOFAS = Social and Occupational Functioning Scale;",
+            "CPZ = Chlorpromazine equivalent doses (before brain scan);",
+            "EOS = Early-onset schizophrenia;",
+            "LOS = Late-onset schizophrenia;", 
+            "EOS-C = Healthy controls for EOS;",
+            "LOS-C = Healthy controls for LOS"
+        )),
+        ref_symbols = "1",
+        part = "header"
+    ) %>% 
+    footnote(
+        i = 2, j = c(5, 9, 10, 11),
+        value = as_paragraph(c(
+            "Pearson's Chi-squared test; Welch Two Sample t-test"
+        )),
+        ref_symbols = c("2"),
+        part = "header"
+    ) %>% 
+    footnote(
+        i = 2, j = c(5, 9, 10, 11),
+        value = as_paragraph(c(
+            "False discovery rate correction for multiple testing"
+        )),
+        ref_symbols = c("3"),
+        part = "header"
+    ) %>% 
+    bg(j = c(2, 6), bg = "grey85", part = "body") %>% 
+    save_as_docx(
+        path = here("outputs", "tables", "basic_demog_table.docx"),
+        pr_section = sect_properties)
+    
 
 # get site differences
 site_compare_table <- data %>% 
