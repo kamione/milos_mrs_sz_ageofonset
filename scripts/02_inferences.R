@@ -2,12 +2,21 @@
 library(tidyverse)
 library(here)
 library(ggpubr)
-library(haven)
 library(glue)
 library(rstatix)
 library(gtsummary)
 library(ggthemes)
 library(gt)
+library(flextable)
+library(officer)
+
+sect_properties <- prop_section(
+    page_size = page_size(orient = "portrait",
+                          width = 11.7, height = 8.3),
+    type = "continuous",
+    page_margins = page_mar()
+)
+
 
 source(here("src", "R", "stat.R"))
 
@@ -264,6 +273,14 @@ table_cog_fep %>%
     as_gt() %>% 
     gtsave(filename = here("outputs", "tables", "table_cog_fep.html"))
 
+table_cog_fep %>% 
+    as_flex_table() %>% 
+    bold(part = "header") %>% 
+    fontsize(size = 8, part = "all") %>% 
+    save_as_docx(
+        path = here("outputs", "tables", "table_cog_fep.docx"),
+        pr_section = sect_properties
+    )
 
 table_cog_all <- data %>% 
     select(group2, DS_F:Monotone) %>% 
