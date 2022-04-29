@@ -14,7 +14,26 @@ sect_properties <- prop_section(
     page_size = page_size(orient = "portrait",
                           width = 11.7, height = 8.3),
     type = "continuous",
-    page_margins = page_mar()
+    page_margins = 
+        page_mar(
+            bottom = 0.5,
+            top = 0.5,
+            right = 0.5,
+            left = 0.5,
+        )
+)
+
+sect_properties_landscape <- prop_section(
+    page_size = page_size(orient = "landscape",
+                          width = 8.3, height = 11.7),
+    type = "continuous",
+    page_margins = 
+        page_mar(
+            bottom = 0.5,
+            top = 0.5,
+            right = 0.5,
+            left = 0.5,
+        )
 )
 
 
@@ -454,29 +473,33 @@ table_lm_3 <- tbl_merge(list(table_lm_3_std, table_lm_3_org)) %>%
         c(estimate_1, ci_1, p.value_2) ~ 
             "**MWCST (Non-Perseverative Error) ~ ACC**")
 
-
-
+# merge table 1, 2 and 3
 merged_table <- tbl_merge(
     list(table_lm_1, table_lm_2, table_lm_3),
     tab_spanner = c("**A. Visual Pattern (Correct) ~ BG**", 
                     "**B. MWCST (Non-Perseverative Error) ~ BG**",
                     "**C. MWCST (Non-Perseverative Error) ~ ACC**")
+    ) %>% 
+    modify_footnote(
+        c("label") ~ 
+        "DUP = Duration of untreated psychosis;
+        EOS = Early-onset schizophrenia;
+        LOS = Late-onset schizophrenia") %>% 
+    modify_footnote(
+        c("estimate_1_1", "estimate_1_2", "estimate_1_3") ~ "Standardized Betas"
     )
 
 merged_table %>% 
     as_gt() %>%
-    tab_footnote( # and can modify/add footnotes this way
-        footnote = "DUP = Duration of untreated psychosis;
-                    EOS = Early-onset schizophrenia;
-                    LOS = Late-onset schizophrenia",
-        locations = cells_column_labels(columns = label)
-    ) %>% 
-    tab_footnote( # and can modify/add footnotes this way
-        footnote = "Standardized Betas",
-        locations = cells_column_labels(columns = c(estimate_1_1, estimate_1_2, estimate_1_3))
-    ) %>% 
     gtsave(filename = here("outputs", "tables", "regression_models_comparison.html"))
 
+merged_table %>% 
+    as_flex_table() %>% 
+    autofit() %>% 
+    bold(part = "header") %>% 
+    save_as_docx(
+        path = here("outputs", "tables", "regression_models_comparison.docx"),
+        pr_section = sect_properties_landscape)
 
 
 # only model 1 shows an interaction effect
