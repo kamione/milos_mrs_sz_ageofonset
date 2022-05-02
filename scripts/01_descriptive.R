@@ -37,7 +37,13 @@ data <- here("data", "raw", "MILOS_20210621.csv") %>%
     filter(!(aoo < 40 & group2 == "LOS"))
 
 write_rds(data, here("data", "processed", "data4analysis.rds"))
+write_csv(data, here("data", "processed", "data4analysis.csv"))
 # data <- read_rds(here("data", "processed", "data4analysis.rds"))
+
+qa_data <-  here("data", "raw", "mrs_qa.csv") %>% 
+    read_csv(show_col_types = FALSE) %>% 
+    left_join(data %>% select(subjectcode, group, group2), by = "subjectcode")
+
 
 # Demographics -----------------------------------------------------------------
 basic_demog_table1 <- data %>% 
@@ -307,3 +313,59 @@ site_compare_table %>%
     ) %>% 
     gtsave(filename = here("outputs", "tables", "site_compare_sz_table.html"))
 
+
+# 
+
+
+acc_qa_table <- qa_data %>% 
+    filter(voi == "acc") %>% 
+    select(-c(voi, subjectcode, group2)) %>% 
+    tbl_summary(
+        by = group,
+        type = list(glx_crlb ~ "continuous", naa_crlb ~ "continuous"),
+        statistic = list(all_continuous() ~ "{mean} ({sd})"),
+        missing = "no",
+        label = list(
+            fwhm ~ "FWHM",
+            sn_ratio ~ "SN Ratio",
+            glx_crlb ~ "GLX CRLB",
+            naa_crlb ~ "NAA CRLB"
+        )
+    ) %>% 
+    add_p() %>% 
+    add_q()
+
+bg_qa_table <- qa_data %>% 
+    filter(voi == "bg") %>% 
+    select(-c(voi, subjectcode, group2)) %>% 
+    tbl_summary(
+        by = group,
+        type = list(glx_crlb ~ "continuous", naa_crlb ~ "continuous"),
+        statistic = list(all_continuous() ~ "{mean} ({sd})"),
+        missing = "no",
+        label = list(
+            fwhm ~ "FWHM",
+            sn_ratio ~ "SN Ratio",
+            glx_crlb ~ "GLX CRLB",
+            naa_crlb ~ "NAA CRLB"
+        )
+    ) %>% 
+    add_p() %>% 
+    add_q()
+    
+list(acc_qa_table, bg_qa_table) %>% 
+    tbl_stack(group_header = c("Anterior Cingular Cortex", "Basal Ganglia")) %>% 
+    modify_footnote(label ~ paste(
+        "FWHM = Full-width at half-maximum;", 
+        "SN = Signal-to-Noise;",
+        "GLX = Glutamine and glutamate;",
+        "NAA = N-acetylaspartate;",
+        "CRLB = Cramer-Rao lower bounds")
+    ) %>% 
+    as_flex_table() %>% 
+    bold(part = "header") %>% 
+    save_as_docx(
+        path = here("outputs", "tables", "mrs_qa_table.docx"),
+        pr_section = sect_properties)
+    
+    
