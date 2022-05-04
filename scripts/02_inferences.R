@@ -118,6 +118,7 @@ ggarrange(plotlist = figs_4groups, ncol = 2, nrow = 2, labels = LETTERS[1:4]) %>
 # 2. Correlation between Metabolite and Cognitive Performance ------------------
 corr_res <- data %>% 
     select(bg_glugln:acc_naa, DS_F:Monotone) %>% 
+    select(-c(WC_error, VF_error_count)) %>% 
     rename(
         "BG Glx" = "bg_glugln",
         "BG NAA" = "bg_naa",
@@ -125,19 +126,17 @@ corr_res <- data %>%
         "ACC NAA" = "acc_naa",
         "Digit Span (Forward)" = "DS_F",
         "Digit Span (Backward)" = "DS_B",
-        "Viusal Pattern (Correct)" = "Visual_Pattern_correct",
-        "Viusal Pattern (Longest)" = "Visual_Pattern_Longest_Passed",
+        "Visual Pattern (Correct)" = "Visual_Pattern_correct",
+        "Visual Pattern (Longest)" = "Visual_Pattern_Longest_Passed",
         "Logical Memory (Immediate)" = "LM_immediate",
         "Logical Memory (Delayed)" = "LM_delayed",
         "Digit Symbol" = "Digit_symbol",
         "MWCST (Correct)" = "WC_correct",
-        "MWCST (Error)" = "WC_error",
         "MWCST (Non-Perseverative Error)" = "WC_NP_error",
         "MWCST (Perseverative Error)" = "WC_P_error",
-        "MWCST (Categories)" = "WC_categories",
+        "MWCST (Category Complete)" = "WC_categories",
         "Verbal Fluency (Count)" = "VF_count",
-        "Verbal Fluency (Duplicate)" = "VF_duplicate_count",
-        "Verbal Fluency (Error)" = "VF_error_count"
+        "Verbal Fluency (Duplicate)" = "VF_duplicate_count"
     ) %>% 
     psych::corr.test(method = "spearman")
 
@@ -171,7 +170,7 @@ scatter_1 <- data %>%
     annotate(geom = "text",
              x = 0.5,
              y = 24,
-             label = glue("italic(r)=={format_decimals(corr_res$r['BG NAA', 'Viusal Pattern (Correct)'])}*','~italic(p)=={format_decimals(corr_res$p['BG NAA', 'Viusal Pattern (Correct)'])}"),
+             label = glue("italic(r)=={format_decimals(corr_res$r['BG NAA', 'Visual Pattern (Correct)'])}*','~italic(p)=={format_decimals(corr_res$p['BG NAA', 'Visual Pattern (Correct)'])}"),
              color = "gray20",
              hjust = 0,
              parse = TRUE)
@@ -223,7 +222,7 @@ comparison_violin <- data %>%
     select(group2, Visual_Pattern_correct, WC_NP_error) %>% 
     mutate(group2 = droplevels(group2)) %>% 
     rename(
-        "Viusal Pattern (Correct)" = "Visual_Pattern_correct",
+        "Visual Pattern (Correct)" = "Visual_Pattern_correct",
         "MWCST (Non-Perseverative Error)" = "WC_NP_error"
     ) %>% 
     pivot_longer(!group2, names_to = "measures", values_to = "value") %>%
@@ -258,23 +257,22 @@ ggsave(filename = here("outputs", "figs", "violin_comparison.pdf"),
 table_cog_fep <- data %>% 
     filter(group2 %in% c("EOS", "LOS")) %>% 
     select(group2, DS_F:Monotone) %>% 
+    select(-c(WC_error, VF_error_count)) %>% 
     mutate(group2 = droplevels(group2)) %>% 
     rename(
         "Digit Span (Forward)" = "DS_F",
         "Digit Span (Backward)" = "DS_B",
-        "Viusal Pattern (Correct)" = "Visual_Pattern_correct",
-        "Viusal Pattern (Longest)" = "Visual_Pattern_Longest_Passed",
+        "Visual Pattern (Correct)" = "Visual_Pattern_correct",
+        "Visual Pattern (Longest)" = "Visual_Pattern_Longest_Passed",
         "Logical Memory (Immediate)" = "LM_immediate",
         "Logical Memory (Delayed)" = "LM_delayed",
         "Digit Symbol" = "Digit_symbol",
         "MWCST (Correct)" = "WC_correct",
-        "MWCST (Error)" = "WC_error",
         "MWCST (Non-Perseverative Error)" = "WC_NP_error",
         "MWCST (Perseverative Error)" = "WC_P_error",
-        "MWCST (Categories)" = "WC_categories",
+        "MWCST (Category Complete)" = "WC_categories",
         "Verbal Fluency (Correct)" = "VF_count",
-        "Verbal Fluency (Duplicate)" = "VF_duplicate_count",
-        "Verbal Fluency (Error)" = "VF_error_count"
+        "Verbal Fluency (Duplicate)" = "VF_duplicate_count"
     ) %>% 
     tbl_summary(
         by = group2,
@@ -303,23 +301,22 @@ table_cog_fep %>%
 
 table_cog_all <- data %>% 
     select(group2, DS_F:Monotone) %>% 
+    select(-c(WC_error, VF_error_count)) %>% 
     mutate(group2 = droplevels(group2)) %>% 
     rename(
         "Digit Span (Forward)" = "DS_F",
         "Digit Span (Backward)" = "DS_B",
-        "Viusal Pattern (Correct)" = "Visual_Pattern_correct",
-        "Viusal Pattern (Longest)" = "Visual_Pattern_Longest_Passed",
+        "Visual Pattern (Correct)" = "Visual_Pattern_correct",
+        "Visual Pattern (Longest)" = "Visual_Pattern_Longest_Passed",
         "Logical Memory (Immediate)" = "LM_immediate",
         "Logical Memory (Delayed)" = "LM_delayed",
         "Digit Symbol" = "Digit_symbol",
         "MWCST (Correct)" = "WC_correct",
-        "MWCST (Error)" = "WC_error",
         "MWCST (Non-Perseverative Error)" = "WC_NP_error",
         "MWCST (Perseverative Error)" = "WC_P_error",
         "MWCST (Categories)" = "WC_categories",
         "Verbal Fluency (Correct)" = "VF_count",
-        "Verbal Fluency (Duplicate)" = "VF_duplicate_count",
-        "Verbal Fluency (Error)" = "VF_error_count"
+        "Verbal Fluency (Duplicate)" = "VF_duplicate_count"
     ) %>% 
     tbl_summary(
         by = group2,
@@ -337,8 +334,10 @@ table_cog_all %>%
     as_gt() %>% 
     gtsave(filename = here("outputs", "tables", "table_cog_all.html"))
 
-
-
+table_cog_all %>% 
+    as_flex_table() %>% 
+    save_as_docx(path = here("outputs", "tables", "table_cog_all.docx"),
+                 pr_section = sect_properties_landscape)
 
 # 4. Regression Models ---------------------------------------------------------                                                                                                                                                                                                                                     
 data_fep <- data %>% 
@@ -388,8 +387,6 @@ table_lm_1 <- tbl_merge(list(table_lm_1_std, table_lm_1_org)) %>%
         c(estimate_1, ci_1, p.value_2) ~ 
             "**Visual Pattern (Correct) ~ BG**")
 
-
-
 lm_res2 <- data_fep %>%
     rename("naa" = "bg_naa") %>% 
     lm(WC_NP_error ~ Age + Gender + Years_of_education + DUP_months + aoo + naa * group2, data = .)
@@ -429,8 +426,6 @@ table_lm_2 <- tbl_merge(list(table_lm_2_std, table_lm_2_org)) %>%
     modify_spanning_header(
         c(estimate_1, ci_1, p.value_2) ~ 
             "**MWCST (Non-Perseverative Error) ~ BG**")
-
-
 
 lm_res3 <- data_fep %>%
     rename("naa" = "acc_naa") %>% 
