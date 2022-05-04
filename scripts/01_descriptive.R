@@ -72,7 +72,7 @@ basic_demog_table1 <- data %>%
         label = list(Gender ~ "Male",
                      Age ~ "Age",
                      Years_of_education ~ "Education Years",
-                     Occupation_recode ~ "Employement",
+                     Occupation_recode ~ "Employment",
                      dx_sz ~ "SZ Diagnosis",
                      DUP_months ~ "DUP in months, median (IQR)",
                      aoo ~ "Age of Onset",
@@ -108,7 +108,7 @@ basic_demog_table2 <- data %>%
         label = list(Gender ~ "Male",
                      Age ~ "Age",
                      Years_of_education ~ "Education Years",
-                     Occupation_recode ~ "Employement")
+                     Occupation_recode ~ "Employment")
     ) %>% 
     add_overall() %>% 
     modify_footnote(update = everything() ~ NA) %>% 
@@ -134,7 +134,7 @@ basic_demog_table3 <- data %>%
         label = list(Gender ~ "Male",
                      Age ~ "Age",
                      Years_of_education ~ "Education Years",
-                     Occupation_recode ~ "Employement")
+                     Occupation_recode ~ "Employment")
     ) %>% 
     modify_footnote(update = everything() ~ NA) %>% 
     add_p(test = list(all_continuous() ~ "t.test",
@@ -159,7 +159,7 @@ basic_demog_table4 <- data %>%
         label = list(Gender ~ "Male",
                      Age ~ "Age",
                      Years_of_education ~ "Education Years",
-                     Occupation_recode ~ "Employement")
+                     Occupation_recode ~ "Employment")
     ) %>% 
     modify_footnote(update = everything() ~ NA) %>% 
     add_p(test = list(all_continuous() ~ "t.test",
@@ -272,7 +272,7 @@ site_compare_table <- data %>%
         label = list(Gender ~ "Male",
                      Age ~ "Age",
                      Years_of_education ~ "Education Years",
-                     Occupation_recode ~ "Employement",
+                     Occupation_recode ~ "Employment",
                      dx_sz ~ "SZ Diagnosis",
                      DUP_months ~ "DUP in months, median (IQR)",
                      aoo ~ "Age of Onset",
@@ -314,9 +314,7 @@ site_compare_table %>%
     gtsave(filename = here("outputs", "tables", "site_compare_sz_table.html"))
 
 
-# 
-
-
+# QA table for supplementary
 acc_qa_table <- qa_data %>% 
     filter(voi == "acc") %>% 
     select(-c(voi, subjectcode, group2)) %>% 
