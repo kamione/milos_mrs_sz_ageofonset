@@ -92,14 +92,15 @@ figs_4groups <- lapply(seq_along(imaging_list1), function(x) {
     
     step_increase <- ifelse(imaging_list1[x] == "bg_naa", 2.1, 0.3)
     
+    # post-hoc analysis
     stat.test <- data %>% 
         t_test(
             formula(glue("{imaging_list1[x]} ~ group2")),
             comparisons = list(c("EOS", "EOS-C"), c("LOS", "LOS-C"), c("EOS", "LOS")),
-            p.adjust.method = "fdr"
+            p.adjust.method = "fdr",
+            detailed = TRUE
         ) %>%
         add_xy_position(step.increase = step_increase)
-    
     print(stat.test)
     
     ggviolin(data,
@@ -289,7 +290,7 @@ table_cog_fep <- data %>%
     add_q(method = "fdr") %>% 
     add_stat(fns = everything() ~ cohen_d) %>% 
     bold_p(q = TRUE) %>%
-    modify_header(add_stat_1 ~ "**Cohen's d**")
+    modify_header(add_stat_1 ~ "**Cohen'd (95% CI)**")
 
 table_cog_fep %>% 
     as_gt() %>% 
