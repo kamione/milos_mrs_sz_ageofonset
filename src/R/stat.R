@@ -1,7 +1,14 @@
 cohen_d <- function(data, variable, by, ...) {
-    effsize::cohen.d(data[[variable]] ~ as.factor(data[[by]]), 
+    d <- effsize::cohen.d(data[[variable]] ~ as.factor(data[[by]]), 
                      conf.level = .95, pooled = TRUE, paired = FALSE, 
-                     hedges.correction = TRUE)$estimate
+                     hedges.correction = TRUE)
+    
+    # Formatting statistic with CI
+    est <- style_sigfig(d$estimate)
+    ci <- style_sigfig(d$conf.int) %>% paste(collapse = ", ")
+    
+    # returning estimate with CI together
+    str_glue("{est} ({ci})")
 }
 
 add_stat_pairwise <- function(data, variable, by, ...) {
