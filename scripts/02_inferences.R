@@ -84,6 +84,12 @@ figs_4groups <- lapply(seq_along(imaging_list1), function(x) {
     fit <- kruskal.test(as.formula(glue("{imaging_list1[x]} ~ group2")), data = data)
     print(broom::glance(fit))
     
+    # get the effect size with 95% CI
+    effectsize <- glue("{imaging_list1[x]} ~ group2") %>% 
+        as.formula() %>% 
+        kruskal_effsize(ci = TRUE, data = data)
+    print(effectsize)
+    
     step_increase <- ifelse(imaging_list1[x] == "bg_naa", 2.1, 0.3)
     
     stat.test <- data %>% 
@@ -113,7 +119,6 @@ figs_4groups <- lapply(seq_along(imaging_list1), function(x) {
 ggarrange(plotlist = figs_4groups, ncol = 2, nrow = 2, labels = LETTERS[1:4]) %>% 
     ggexport(filename = here("outputs", "figs", "mrs_4groups_fig.pdf"),
              width = 10, height = 7)
-
 
 # 2. Correlation between Metabolite and Cognitive Performance ------------------
 corr_res <- data %>% 
