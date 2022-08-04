@@ -2,7 +2,7 @@
 
 ## Title
 
-Reduced basal ganglia N-acetylaspartate linked to working memory deficits in late-onset versus early-onset first episode schizophrenia-spectrum disorder
+Reduced basal ganglia N-acetylaspartate linked to working memory deficits in late-onset versus average-onset first episode schizophrenia-spectrum disorder
 
 ## Folder Structure
 
