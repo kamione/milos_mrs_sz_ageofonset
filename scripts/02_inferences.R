@@ -36,14 +36,13 @@ sect_properties_landscape <- prop_section(
         )
 )
 
-
 source(here("src", "R", "stat.R"))
-
 filter <- dplyr::filter # resolve the conflict
 
 
 # Data I/O ---------------------------------------------------------------------
 data <- read_rds(here("data", "processed", "data4analysis.rds"))
+
 
 # 1. Metabolite Group Difference -----------------------------------------------
 imaging_list1 <- c("BG Glx" = "bg_glugln",
@@ -96,12 +95,21 @@ figs_4groups <- lapply(seq_along(imaging_list1), function(x) {
     stat.test <- data %>% 
         t_test(
             formula(glue("{imaging_list1[x]} ~ group2")),
-            comparisons = list(c("EOS", "EOS-C"), c("LOS", "LOS-C"), c("EOS", "LOS")),
+            comparisons = list(c("AOS", "AOS-C"), c("LOS", "LOS-C"), c("AOS", "LOS")),
             p.adjust.method = "fdr",
+            var.equal = FALSE,
             detailed = TRUE
         ) %>%
         add_xy_position(step.increase = step_increase)
-    print(stat.test)
+    print(stat.test %>% select(statistic, df, p.adj, conf.low, conf.high))
+    
+    data %>% 
+        cohens_d(
+            formula(glue("{imaging_list1[x]} ~ group2")),
+            comparisons = list(c("AOS", "AOS-C"), c("LOS", "LOS-C"), c("AOS", "LOS")),
+            var.equal = FALSE
+        ) %>% 
+        print()
     
     ggviolin(data,
               x = "group2",
@@ -176,7 +184,7 @@ scatter_1 <- data %>%
     annotate(geom = "text",
              x = 0.5,
              y = 24,
-             label = glue("italic(r)=={format_decimals(corr_res$r['BG NAA', 'Visual Pattern (Correct)'])}*','~italic(p)=={format_decimals(corr_res$p['BG NAA', 'Visual Pattern (Correct)'])}"),
+             label = glue("italic(r)=={format_decimals(corr_res$r['BG NAA', 'Visual Pattern (Correct)'])}*','~italic(q)=={format_decimals(corr_res$p['BG NAA', 'Visual Pattern (Correct)'])}"),
              color = "gray20",
              hjust = 0,
              parse = TRUE)
@@ -193,7 +201,7 @@ scatter_2 <- data %>%
     annotate(geom = "text",
              x = 1,
              y = 24,
-             label = glue("italic(r)=={format_decimals(corr_res$r['BG NAA', 'MWCST (Non-Perseverative Error)'])}*','~italic(p)=={format_decimals(corr_res$p['BG NAA', 'MWCST (Non-Perseverative Error)'])}"),
+             label = glue("italic(r)=={format_decimals(corr_res$r['BG NAA', 'MWCST (Non-Perseverative Error)'])}*','~italic(q)=={format_decimals(corr_res$p['BG NAA', 'MWCST (Non-Perseverative Error)'])}"),
              color = "gray20",
              hjust = 0,
              parse = TRUE)
@@ -210,7 +218,7 @@ scatter_3 <- data %>%
     annotate(geom = "text",
              x = 1.32,
              y = 24,
-             label = glue("italic(r)=={format_decimals(corr_res$r['ACC NAA', 'MWCST (Non-Perseverative Error)'])}*','~italic(p)=={format_decimals(corr_res$p['ACC NAA', 'MWCST (Non-Perseverative Error)'])}"),
+             label = glue("italic(r)=={format_decimals(corr_res$r['ACC NAA', 'MWCST (Non-Perseverative Error)'])}*','~italic(q)=={format_decimals(corr_res$p['ACC NAA', 'MWCST (Non-Perseverative Error)'])}"),
              color = "gray20",
              hjust = 0,
              parse = TRUE)
@@ -224,7 +232,7 @@ ggexport(scatter_combined,
 
 
 comparison_violin <- data %>% 
-    filter(group2 %in% c("EOS", "LOS")) %>% 
+    filter(group2 %in% c("AOS", "LOS")) %>% 
     select(group2, Visual_Pattern_correct, WC_NP_error) %>% 
     mutate(group2 = droplevels(group2)) %>% 
     rename(
@@ -251,17 +259,17 @@ comparison_violin <- data %>%
             cutpoints = c(0, 0.001, 0.01, 0.05, 1),
             symbols = c("***", "**", "*", "ns")
         ),
-        comparisons = list(c("LOS", "EOS"))
+        comparisons = list(c("LOS", "AOS"))
     )
 
-ggsave(filename = here("outputs", "figs", "violin_comparison.pdf"),
+ggsave(filename = here("outputs", "figs", "aos_cog_violin_comparison.pdf"),
        comparison_violin,
        height = 4.5,
        width = 6)
 
 # 3. Cognition Group Difference ------------------------------------------------
 table_cog_fep <- data %>% 
-    filter(group2 %in% c("EOS", "LOS")) %>% 
+    filter(group2 %in% c("AOS", "LOS")) %>% 
     select(group2, DS_F:Monotone) %>% 
     select(-c(WC_error, VF_error_count)) %>% 
     mutate(group2 = droplevels(group2)) %>% 
@@ -286,7 +294,10 @@ table_cog_fep <- data %>%
         type = where(is.numeric) ~ "continuous",
         statistic = list(everything() ~ "{mean} ({sd})")
     ) %>% 
-    add_p(test = list(everything() ~ "t.test")) %>% 
+    add_p(
+        test = everything() ~ "t.test", 
+        test.args = all_tests("t.test") ~ list(var.equal = TRUE)
+    ) %>% 
     add_q(method = "fdr") %>% 
     add_stat(fns = everything() ~ cohen_d) %>% 
     bold_p(q = TRUE) %>%
@@ -334,7 +345,7 @@ table_cog_all <- data %>%
     add_q(method = "fdr") %>% 
     bold_p(q = TRUE) %>%
     add_stat(everything() ~ add_stat_pairwise) %>% 
-    modify_column_hide(c("**EOS-C vs. LOS**", "**EOS vs. LOS-C**"))
+    modify_column_hide(c("**AOS-C vs. LOS**", "**AOS vs. LOS-C**"))
     
 table_cog_all %>% 
     as_gt() %>% 
@@ -484,7 +495,7 @@ merged_table <- tbl_merge(
     modify_footnote(
         c("label") ~ 
         "DUP = Duration of untreated psychosis;
-        EOS = Early-onset schizophrenia;
+        AOS = Average-onset schizophrenia;
         LOS = Late-onset schizophrenia") %>% 
     modify_footnote(
         c("estimate_1_1", "estimate_1_2", "estimate_1_3") ~ "Standardized Betas"

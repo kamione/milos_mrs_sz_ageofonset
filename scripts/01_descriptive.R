@@ -33,7 +33,11 @@ data <- here("data", "raw", "MILOS_20210621.csv") %>%
     read_csv(col_types = cols()) %>% 
     left_join(aoo_data, by = "subjectcode") %>% 
     mutate(group = factor(group, levels = c("FEP", "HC"))) %>% 
-    mutate(group2 = factor(group2, levels = c("EOS", "EOS-C", "LOS", "LOS-C"))) %>% 
+    mutate(group2 = factor(
+        group2,
+        levels = c("EOS", "EOS-C", "LOS", "LOS-C"),
+        labels = c("AOS", "AOS-C", "LOS", "LOS-C"))
+    ) %>% 
     filter(!(aoo < 40 & group2 == "LOS"))
 
 write_rds(data, here("data", "processed", "data4analysis.rds"))
@@ -50,8 +54,8 @@ basic_demog_table1 <- data %>%
     select(group2, Gender, Age, Years_of_education, Occupation_recode, dx_sz,
            DUP_months, aoo, PANSS_P_Total:PANSS_G_Total, CDSS_TOTAL, MRS_TOTAL,
            SOFAS, CPZ_before_scan) %>%
-    filter(group2 %in% c("EOS", "LOS")) %>% 
-    mutate(group2 = factor(group2)) %>%
+    filter(group2 %in% c("AOS", "LOS")) %>% 
+    mutate(group2 = droplevels(group2)) %>%
     tbl_summary(
         by = group2,
         missing = "no",
@@ -60,6 +64,7 @@ basic_demog_table1 <- data %>%
             all_categorical() ~ c(0, 1),
             c("CPZ_before_scan") ~ c(0, 0)
         ),
+        type = list(MRS_TOTAL ~ 'continuous'),
         statistic = list(
             where(is.numeric) ~ "{mean} ({sd})",
             c("DUP_months", "CPZ_before_scan") ~ "{median} ({IQR})",
@@ -86,16 +91,20 @@ basic_demog_table1 <- data %>%
     ) %>% 
     add_overall() %>% 
     modify_footnote(update = everything() ~ NA) %>% 
-    add_p(test = list(where(is.numeric) ~ "t.test",
-                      all_categorical() ~ "chisq.test")) %>% 
+    add_p(
+        test = list(
+            where(is.numeric) ~ "t.test", all_categorical() ~ "chisq.test"
+        ),
+        test.args = all_tests("t.test") ~ list(var.equal = TRUE)
+    ) %>% 
     add_q() %>% 
     bold_p(q = TRUE) %>% 
     modify_column_hide("p.value")
 
 basic_demog_table2 <- data %>% 
     select(group2, Gender, Age, Years_of_education, Occupation_recode) %>% 
-    filter(group2 %in% c("EOS-C", "LOS-C")) %>% 
-    mutate(group2 = factor(group2)) %>% 
+    filter(group2 %in% c("AOS-C", "LOS-C")) %>% 
+    mutate(group2 = droplevels(group2)) %>% 
     tbl_summary(
         by = group2,
         missing = "no",
@@ -112,16 +121,20 @@ basic_demog_table2 <- data %>%
     ) %>% 
     add_overall() %>% 
     modify_footnote(update = everything() ~ NA) %>% 
-    add_p(test = list(all_continuous() ~ "t.test",
-                      all_categorical() ~ "chisq.test")) %>% 
+    add_p(
+        test = list(
+            where(is.numeric) ~ "t.test", all_categorical() ~ "chisq.test"
+        ),
+        test.args = all_tests("t.test") ~ list(var.equal = TRUE)
+    ) %>% 
     add_q() %>% 
     bold_p(q = TRUE) %>% 
     modify_column_hide("p.value")
          
 basic_demog_table3 <- data %>% 
     select(group2, Gender, Age, Years_of_education, Occupation_recode) %>% 
-    filter(group2 %in% c("EOS", "EOS-C")) %>% 
-    mutate(group2 = factor(group2)) %>% 
+    filter(group2 %in% c("AOS", "AOS-C")) %>% 
+    mutate(group2 = droplevels(group2)) %>% 
     tbl_summary(
         by = group2,
         missing = "no",
@@ -137,8 +150,12 @@ basic_demog_table3 <- data %>%
                      Occupation_recode ~ "Employment")
     ) %>% 
     modify_footnote(update = everything() ~ NA) %>% 
-    add_p(test = list(all_continuous() ~ "t.test",
-                      all_categorical() ~ "chisq.test")) %>% 
+    add_p(
+        test = list(
+            where(is.numeric) ~ "t.test", all_categorical() ~ "chisq.test"
+        ),
+        test.args = all_tests("t.test") ~ list(var.equal = TRUE)
+    ) %>% 
     add_q() %>% 
     bold_p(q = TRUE) %>% 
     modify_column_hide(c("p.value", "stat_1", "stat_2"))
@@ -162,8 +179,12 @@ basic_demog_table4 <- data %>%
                      Occupation_recode ~ "Employment")
     ) %>% 
     modify_footnote(update = everything() ~ NA) %>% 
-    add_p(test = list(all_continuous() ~ "t.test",
-                      all_categorical() ~ "chisq.test")) %>% 
+    add_p(
+        test = list(
+            where(is.numeric) ~ "t.test", all_categorical() ~ "chisq.test"
+        ),
+        test.args = all_tests("t.test") ~ list(var.equal = TRUE)
+    ) %>% 
     add_q() %>% 
     bold_p(q = TRUE) %>% 
     modify_column_hide(c("p.value", "stat_1", "stat_2"))
@@ -173,9 +194,9 @@ basic_demog_table <- tbl_merge(
                 basic_demog_table2, 
                 basic_demog_table3, 
                 basic_demog_table4),
-    tab_spanner = c("**First Episode Schizophrenia**", 
-                    "**Heathy Controls**",
-                    "**EOS vs. EOS-C**",
+    tab_spanner = c("**First Episode Schizophrenia (FES)**", 
+                    "**Heathy Control (HC)**",
+                    "**AOS vs. AOS-C**",
                     "**LOS vs. LOS-C**")) %>% 
     modify_footnote(c("q.value_1", "q.value_2", "q.value_3", "q.value_4") ~ NA)
 
@@ -190,15 +211,30 @@ basic_demog_table %>%
             MRS = Young Mania Rating Scale; 
             SOFAS = Social and Occupational Functioning Scale;
             CPZ = Chlorpromazine equivalent doses (before brain scan);
-            EOS = Early-onset schizophrenia;
+            AOS = Average-onset schizophrenia;
             LOS = Late-onset schizophrenia; 
-            EOS-C = Healthy controls for EOS;
+            AOS-C = Healthy controls for AOS;
             LOS-C = Healthy controls for LOS",
         locations = cells_column_labels(columns = label)
     ) %>% 
     tab_footnote( # and can modify/add footnotes this way
-        footnote = "Pearson's Chi-squared test; Welch Two Sample t-test",
-        locations = cells_column_labels(columns = c("q.value_1", "q.value_2", "q.value_3", "q.value_4"))
+        footnote = "n (%); Mean (SD) unless specified otherwise",
+        locations = cells_column_labels(
+            columns = c("stat_0_1", "stat_1_1", "stat_2_1", 
+                        "stat_0_2", "stat_1_2", "stat_2_2")
+        )
+    ) %>% 
+    tab_footnote( # and can modify/add footnotes this way
+        footnote = "Pearson's Chi-squared test; Two Sample t-test",
+        locations = cells_column_labels(
+            columns = c("q.value_1", "q.value_2", "q.value_3", "q.value_4")
+        )
+    ) %>% 
+    tab_footnote( # and can modify/add footnotes this way
+        footnote = "False discovery rate correction for multiple testing",
+        locations = cells_column_labels(
+            columns = c("q.value_1", "q.value_2", "q.value_3", "q.value_4")
+        )
     ) %>% 
     tab_style(
         style = list(cell_fill(color = "lightgrey")),
@@ -220,18 +256,18 @@ basic_demog_table %>%
             "MRS = Young Mania Rating Scale;", 
             "SOFAS = Social and Occupational Functioning Scale;",
             "CPZ = Chlorpromazine equivalent doses (before brain scan);",
-            "EOS = Early-onset schizophrenia;",
+            "AOS = Average-onset schizophrenia;",
             "LOS = Late-onset schizophrenia;", 
-            "EOS-C = Healthy controls for EOS;",
+            "AOS-C = Healthy controls for AOS;",
             "LOS-C = Healthy controls for LOS"
         )),
         ref_symbols = "1",
         part = "header"
     ) %>% 
     footnote(
-        i = 2, j = c(5, 9, 10, 11),
+        i = 2, j = c(2, 3, 4, 6, 7, 8),
         value = as_paragraph(c(
-            "Pearson's Chi-squared test; Welch Two Sample t-test"
+            "n (%); Mean (SD) unless specified otherwise"
         )),
         ref_symbols = c("2"),
         part = "header"
@@ -239,9 +275,17 @@ basic_demog_table %>%
     footnote(
         i = 2, j = c(5, 9, 10, 11),
         value = as_paragraph(c(
-            "False discovery rate correction for multiple testing"
+            "Pearson's Chi-squared test; Two Sample t-test"
         )),
         ref_symbols = c("3"),
+        part = "header"
+    ) %>% 
+    footnote(
+        i = 2, j = c(5, 9, 10, 11),
+        value = as_paragraph(c(
+            "False discovery rate correction for multiple testing"
+        )),
+        ref_symbols = c("4"),
         part = "header"
     ) %>% 
     bg(j = c(2, 6), bg = "grey85", part = "body") %>% 
@@ -286,8 +330,12 @@ site_compare_table <- data %>%
     ) %>% 
     add_overall() %>% 
     modify_footnote(update = everything() ~ NA) %>% 
-    add_p(test = list(all_continuous() ~ "wilcox.test",
-                      all_categorical() ~ "chisq.test")) %>% 
+    add_p(
+        test = list(
+            where(is.numeric) ~ "t.test", all_categorical() ~ "chisq.test"
+        ),
+        test.args = all_tests("t.test") ~ list(var.equal = TRUE)
+    ) %>% 
     bold_p()
 
 site_compare_table %>% 
@@ -301,9 +349,9 @@ site_compare_table %>%
             MRS = Young Mania Rating Scale; 
             SOFAS = Social and Occupational Functioning Scale;
             CPZ = Chlorpromazine equivalent doses (before brain scan);
-            EOS = Early-onset schizophrenia;
+            AOS = Average-onset schizophrenia;
             LOS = Late-onset schizophrenia; 
-            EOS-C = Healthy controls for EOS;
+            AOS-C = Healthy controls for AOS;
             LOS-C = Healthy controls for LOS",
         locations = cells_column_labels(columns = label)
     ) %>%
